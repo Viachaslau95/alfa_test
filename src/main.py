@@ -5,8 +5,8 @@ import pandas as pd
 from fastapi import FastAPI, Depends, UploadFile, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette import status
 
+from src.schemas import Client
 from src.database import get_async_session
 from src.models import client, message
 
@@ -61,8 +61,16 @@ async def create_upload_file(file: UploadFile):
         sheet = wb.active
         clients = list()
         messages = list()
+
         for row in range(1, sheet.max_row):
-            clients.append(sheet[row+1][0].value)
-            if sheet[row+1][1].value:
-                messages.append(sheet[row + 1][1].value)
+            phone_number = sheet[row + 1][0].value
+            text_message = sheet[row+1][1].value
+            try:
+                client = Client(phone_number=phone_number)
+                clients.append(client)
+            except Exception:
+                print(f"In row {row} -Invalid number ({phone_number})")
+
+            if text_message:
+                messages.append(text_message)
         return clients, messages
