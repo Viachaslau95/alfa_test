@@ -74,15 +74,6 @@ async def table_creation(session: AsyncSession = Depends(get_async_session)):
     output_file = 'client_message_data.xlsx'
     combined_df.to_excel(output_file, index=False)
 
-# @app.post("/viber/webhook")
-# async def handle_viber_webhook(request: Request):
-#     # Обработка входящего уведомления
-#     viber_request = viber.parse_request(request.body.decode("utf-8"))
-#     # Ваш код обработки полученного уведомления
-#
-#     # Возвращение ответа Viber, чтобы подтвердить успешную обработку уведомления
-#     return JSONResponse(content=viber.create_response())
-
 @app.post("/uploadFile/")
 async def create_upload_file(file: UploadFile):
     if file.filename.endswith('.xlsx'):
@@ -112,8 +103,7 @@ async def create_upload_file(file: UploadFile):
                 "text_message_request": text_message_request,
                 "contact_message_request": contact_message_request
             })
-        print(response.json())
-        # return clients, messages
+        return clients, messages
 
 
 @app.post('/send-viber-sms')
