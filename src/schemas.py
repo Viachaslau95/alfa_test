@@ -17,3 +17,5 @@ class Client(BaseModel):
         return value
 
 
+class Message(BaseModel):
+    text: str

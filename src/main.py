@@ -1,14 +1,37 @@
+from asyncio import sleep
 from io import BytesIO
 
 import openpyxl
 import pandas as pd
+import requests
+import uvicorn
 from fastapi import FastAPI, Depends, UploadFile, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
-from src.schemas import Client
+from src.config import AUTH_TOKEN, WEBHOOK_URL
+from src.schemas import Client, Message
 from src.database import get_async_session
 from src.models import client, message
+
+from viberbot import Api
+from viberbot.api.bot_configuration import BotConfiguration
+from viberbot.api.messages import (
+        TextMessage,
+        ContactMessage,
+)
+from viberbot.api.messages.data_types.contact import Contact
+
+
+viber = Api(BotConfiguration(
+    name='Alfa-Viber',
+    avatar='http://viber.com/avatar.jpg',
+    auth_token=AUTH_TOKEN
+))
+# webhook_url = "https://2474-46-216-154-9.ngrok-free.app"
+# viber.set_webhook(webhook_url)
 
 app = FastAPI(
     title='Alfa test'
@@ -31,7 +54,7 @@ async def get_messages(session: AsyncSession = Depends(get_async_session)):
     return result
 
 
-@app.get("/gen_table")
+@app.get("/gen-table")
 async def table_creation(session: AsyncSession = Depends(get_async_session)):
     query_client = select(client).with_only_columns(client.c.phone)
     clients = await session.execute(query_client)
@@ -51,6 +74,14 @@ async def table_creation(session: AsyncSession = Depends(get_async_session)):
     output_file = 'client_message_data.xlsx'
     combined_df.to_excel(output_file, index=False)
 
+# @app.post("/viber/webhook")
+# async def handle_viber_webhook(request: Request):
+#     # Обработка входящего уведомления
+#     viber_request = viber.parse_request(request.body.decode("utf-8"))
+#     # Ваш код обработки полученного уведомления
+#
+#     # Возвращение ответа Viber, чтобы подтвердить успешную обработку уведомления
+#     return JSONResponse(content=viber.create_response())
 
 @app.post("/uploadFile/")
 async def create_upload_file(file: UploadFile):
@@ -64,7 +95,7 @@ async def create_upload_file(file: UploadFile):
 
         for row in range(1, sheet.max_row):
             phone_number = sheet[row + 1][0].value
-            text_message = sheet[row+1][1].value
+            text_message = sheet[row + 1][1].value
             try:
                 client = Client(phone_number=phone_number)
                 clients.append(client)
@@ -73,4 +104,38 @@ async def create_upload_file(file: UploadFile):
 
             if text_message:
                 messages.append(text_message)
-        return clients, messages
+        # await send_viber_sms(Client(phone_number='+375445781372'), Message(text='test'))
+        text_message_request = {"text_message": "text test"}
+        contact_message_request = {"name": "TEST viber", "phone_number": "+375445781372"}
+        response = requests.post(
+            "http://localhost:8000/send-viber-sms", json={
+                "text_message_request": text_message_request,
+                "contact_message_request": contact_message_request
+            })
+        print(response.json())
+        # return clients, messages
+
+
+@app.post('/send-viber-sms')
+async def send_viber_sms(contact_request: Client, text_message_request: Message):
+    try:
+        text_message = TextMessage(text=text_message_request.text)
+        contact = Contact(name='test', phone_number=contact_request.phone_number)
+        contact_message = ContactMessage(contact=contact)
+
+        viber.send_messages(messages=[text_message, contact_message], to=contact.phone_number)
+
+        response = {
+            "message": "SMS sent successfully",
+            "text_message": text_message,
+            "recipient_phone_number": contact_request.phone_number
+        }
+
+        return response
+
+    except Exception as e:
+        return JSONResponse(status_code=422, content={"message": str(e)})
+
+
+if __name__ == "__main__":
+    uvicorn.run("src.main:app", host="0.0.0.0", port=8000, reload=True)
