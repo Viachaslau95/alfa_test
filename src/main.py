@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from src.config import AUTH_TOKEN, WEBHOOK_URL
+from src.config import AUTH_TOKEN, WEBHOOK_URL, TEST_NUMBER
 from src.schemas import Client, Message
 from src.database import get_async_session
 from src.models import client, message
@@ -106,7 +106,7 @@ async def create_upload_file(file: UploadFile):
                 messages.append(text_message)
         # await send_viber_sms(Client(phone_number='+375445781372'), Message(text='test'))
         text_message_request = {"text_message": "text test"}
-        contact_message_request = {"name": "TEST viber", "phone_number": "+375445781372"}
+        contact_message_request = {"name": "TEST viber", "phone_number": TEST_NUMBER}
         response = requests.post(
             "http://localhost:8000/send-viber-sms", json={
                 "text_message_request": text_message_request,

@@ -10,6 +10,7 @@ DB_USER = os.environ.get("DB_USER")
 DB_PASS = os.environ.get("DB_PASS")
 AUTH_TOKEN = os.environ.get("AUTH_TOKEN")
 WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
+TEST_NUMBER = os.environ.get("TEST_NUMBER")
 
 
 SECRET_AUTH = os.environ.get("SECRET_AUTH")
