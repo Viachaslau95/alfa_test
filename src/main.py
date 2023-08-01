@@ -36,6 +36,7 @@ viber = Api(BotConfiguration(
 app = FastAPI(
     title='Alfa test'
 )
+
 celery_app = Celery(
     'tasks',
     broker=f"redis://{REDIS_HOST}:{REDIS_PORT}"
@@ -141,16 +142,17 @@ async def create_upload_file(file: UploadFile):
 
             if text_message:
                 messages.append(text_message)
-        # await send_viber_sms(Client(phone_number='+375445781372'), Message(text='test'))
-        text_message_request = {"text_message": "text test"}
-        contact_message_request = {"name": "TEST viber", "phone_number": TEST_NUMBER}
-        response = requests.post(
-            "http://localhost:8000/send-viber-sms", json={
-                "text_message_request": text_message_request,
-                "contact_message_request": contact_message_request
-            })
-        return clients, messages
+            else:
+                messages.append('default message')
 
+        for client_phone in clients:
+            text_message_request = {"text_message": messages[0]}
+            contact_message_request = {"name": "Alfa bank", "phone_number": client_phone}
+            requests.post(
+                "http://localhost:8000/send-viber-sms", json={
+                    "text_message_request": text_message_request,
+                    "contact_message_request": contact_message_request
+                })
 
 @app.post('/send-viber-sms')
 async def send_viber_sms(contact_request: Client, text_message_request: Message):
