@@ -105,7 +105,7 @@ async def table_creation(session: AsyncSession = None):
             df2 = pd.DataFrame(list(data_messages[0]), columns=messages.keys())
 
             combined_df = pd.concat([df1, df2], axis=1)
-            output_file = 'client_message_data.xlsx'
+            output_file = '.client_message_data.xlsx'
             combined_df.to_excel(output_file, index=False)
 
         return output_file
