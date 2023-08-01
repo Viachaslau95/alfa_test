@@ -10,18 +10,13 @@ import uvicorn
 from fastapi import FastAPI, Depends, UploadFile, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from config import REDIS_HOST, REDIS_PORT
-from schemas import Client
+from config import AUTH_TOKEN, WEBHOOK_URL, TEST_NUMBER
+from schemas import Client, Message
 from database import get_async_session
 from models import client, message
-# from tasks import generate_table
-from src.config import AUTH_TOKEN, WEBHOOK_URL, TEST_NUMBER
-from src.schemas import Client, Message
-from src.database import get_async_session
-from src.models import client, message
 
 from viberbot import Api
 from viberbot.api.bot_configuration import BotConfiguration
@@ -37,8 +32,6 @@ viber = Api(BotConfiguration(
     avatar='http://viber.com/avatar.jpg',
     auth_token=AUTH_TOKEN
 ))
-# webhook_url = "https://2474-46-216-154-9.ngrok-free.app"
-# viber.set_webhook(webhook_url)
 
 app = FastAPI(
     title='Alfa test'
