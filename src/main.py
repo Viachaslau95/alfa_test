@@ -56,16 +56,6 @@ def generate_table():
             table_creation(session)
 
 
-# Delayed start of a task every hour during the week
-# @app.on_event("startup")
-# def setup_periodic_tasks():
-#     # celery_app.add_periodic_task(
-#     #     20.0,
-#     #     generate_table.s(5),
-#     #     expires=timedelta(weeks=1)
-#     # )
-#     pass
-
 
 @app.get("/run-task")
 async def run_task():
