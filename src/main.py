@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
-from asyncio import sleep
+
 from io import BytesIO
 
 import openpyxl
 import pandas as pd
-from celery import Celery
+from celery.app import Celery
 import requests
 import uvicorn
 from fastapi import FastAPI, Depends, UploadFile, HTTPException
@@ -21,11 +21,10 @@ from models import client, message
 from viberbot import Api
 from viberbot.api.bot_configuration import BotConfiguration
 from viberbot.api.messages import (
-        TextMessage,
-        ContactMessage,
+    TextMessage,
+    ContactMessage,
 )
 from viberbot.api.messages.data_types.contact import Contact
-
 
 viber = Api(BotConfiguration(
     name='Alfa-Viber',
@@ -42,8 +41,10 @@ celery_app = Celery(
     broker=f"redis://{REDIS_HOST}:{REDIS_PORT}"
 )
 
+celery_app.autodiscover_tasks(['main'])
 
-@celery_app.task
+
+@celery_app.task(name='main.generate_table')
 def generate_table():
     now = datetime.now()
     if now.hour >= 22 or now.hour < 9:
@@ -54,9 +55,9 @@ def generate_table():
 
 
 # Delayed start of a task every hour during the week
-@celery_app.on_after_configure.connect
-def setup_periodic_tasks(sender, **kwargs):
-    sender.add_periodic_task(
+@app.on_event("startup")
+def setup_periodic_tasks():
+    celery_app.add_periodic_task(
         timedelta(hours=1),
         generate_table.s(),
         expires=timedelta(weeks=1)
@@ -66,6 +67,7 @@ def setup_periodic_tasks(sender, **kwargs):
 def run_task():
     generate_table.delay()
     return {"message": "Task is scheduled"}
+
 
 @app.get("/clients")
 async def get_clients(session: AsyncSession = Depends(get_async_session)):
@@ -121,6 +123,7 @@ async def table_creation(session: AsyncSession = None):
         combined_df.to_excel(output_file, index=False)
         return output_file
 
+
 @app.post("/uploadFile/")
 async def create_upload_file(file: UploadFile):
     if file.filename.endswith('.xlsx'):
@@ -153,6 +156,7 @@ async def create_upload_file(file: UploadFile):
                     "text_message_request": text_message_request,
                     "contact_message_request": contact_message_request
                 })
+
 
 @app.post('/send-viber-sms')
 async def send_viber_sms(contact_request: Client, text_message_request: Message):
