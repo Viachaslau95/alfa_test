@@ -7,14 +7,14 @@ import pandas as pd
 from celery.app import Celery
 import requests
 import uvicorn
-from fastapi import FastAPI, Depends, UploadFile, HTTPException
+from fastapi import FastAPI, Depends, UploadFile
 from fastapi_utils.tasks import repeat_every
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import JSONResponse
 
 from config import REDIS_HOST, REDIS_PORT
-from config import AUTH_TOKEN, WEBHOOK_URL, TEST_NUMBER
+from config import AUTH_TOKEN
 from schemas import Client, Message
 from database import get_async_session
 from models import client, message
@@ -45,7 +45,8 @@ celery_app = Celery(
 celery_app.autodiscover_tasks(['main'])
 
 
-@repeat_every(seconds=60*60)
+# Delayed start of a task every hour during the week
+@repeat_every(seconds=60*60, max_repetitions=168)
 def generate_table():
     now = datetime.now()
     if now.hour >= 22 or now.hour < 9:
@@ -109,7 +110,6 @@ async def table_creation(session: AsyncSession = None):
 
         return output_file
     else:
-
         query_client = select(client).with_only_columns(client.c.phone)
         clients = await session.execute(query_client)
         data_clients = clients.fetchall()
