@@ -4,7 +4,7 @@ from io import BytesIO
 
 import openpyxl
 import pandas as pd
-from celery.app import Celery
+
 import requests
 import uvicorn
 from fastapi import FastAPI, Depends, UploadFile
@@ -13,7 +13,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import JSONResponse
 
-from config import REDIS_HOST, REDIS_PORT
 from config import AUTH_TOKEN
 from schemas import Client, Message
 from database import get_async_session
@@ -37,13 +36,6 @@ app = FastAPI(
     title='Alfa test'
 )
 
-celery_app = Celery(
-    'tasks',
-    broker=f"redis://{REDIS_HOST}:{REDIS_PORT}"
-)
-
-celery_app.autodiscover_tasks(['main'])
-
 
 # Delayed start of a task every hour during the week
 @repeat_every(seconds=60*60, max_repetitions=168)
@@ -54,7 +46,6 @@ def generate_table():
     else:
         with get_async_session() as session:
             table_creation(session)
-
 
 
 @app.get("/run-task")
