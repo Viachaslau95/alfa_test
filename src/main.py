@@ -8,6 +8,7 @@ from celery.app import Celery
 import requests
 import uvicorn
 from fastapi import FastAPI, Depends, UploadFile, HTTPException
+from fastapi_utils.tasks import repeat_every
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import JSONResponse
@@ -44,28 +45,30 @@ celery_app = Celery(
 celery_app.autodiscover_tasks(['main'])
 
 
-@celery_app.task(name='main.generate_table')
+@repeat_every(seconds=60*60)
 def generate_table():
     now = datetime.now()
     if now.hour >= 22 or now.hour < 9:
         return
-
-    with get_async_session() as session:
-        table_creation(session)
+    else:
+        with get_async_session() as session:
+            table_creation(session)
 
 
 # Delayed start of a task every hour during the week
-@app.on_event("startup")
-def setup_periodic_tasks():
-    celery_app.add_periodic_task(
-        timedelta(hours=1),
-        generate_table.s(),
-        expires=timedelta(weeks=1)
-    )
+# @app.on_event("startup")
+# def setup_periodic_tasks():
+#     # celery_app.add_periodic_task(
+#     #     20.0,
+#     #     generate_table.s(5),
+#     #     expires=timedelta(weeks=1)
+#     # )
+#     pass
+
 
 @app.get("/run-task")
-def run_task():
-    generate_table.delay()
+async def run_task():
+    await generate_table()
     return {"message": "Task is scheduled"}
 
 
